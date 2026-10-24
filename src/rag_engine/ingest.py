@@ -1,6 +1,6 @@
 
 """
-Ingest Module for Mowjn AI-Bayan
+# Ingest Module for Qreen Contextual Engine
 =================================
 
 تغذية البيانات الأولية للنظام — فهرسة الوثائق محلياً.
