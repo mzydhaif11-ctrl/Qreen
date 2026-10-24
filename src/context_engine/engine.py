@@ -4,7 +4,7 @@ Qreen Contextual Engine | Adaptive Memory Engine
 محرك ذاكرة سياقية تكيفية مع تضاؤل زمني وتخزين دائم على ChromaDB.
 
 License: MIT
-Author: Mowjn AI-Bayan Team
+Author: Qreen Team
 """
 
 from __future__ import annotations
