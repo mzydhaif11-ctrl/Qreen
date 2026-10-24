@@ -1,5 +1,4 @@
-
-Grounded RAG Engine for Mowjn AI-Bayan
+Grounded RAG Engine for Qreen Contextual Engine
 =======================================
 
 محرك استرجاع المعلومات المعزز — محلي بالكامل.
