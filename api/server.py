@@ -1,157 +1,231 @@
 """
-موجة البيان | Mowjn AI-Bayan
-خادم FastAPI — يدعم وضعين:
-1. مع نموذج لغوي (علّام عبر HUMAIN Node)
-2. بدون نموذج — بحث محلي فقط من قاعدة المعرفة 🔒
+Qreen Contextual Engine | FastAPI Server
+=========================================
+محرك استرجاع معلومات محلي بالكامل — يدعم العربية بدون أي API خارجي 🔒🇸🇦
+
+Author: Qreen Team
+License: MIT
 """
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from typing import List, Optional
 import os
+import logging
 
-# استيراد المكونات المحلية
-from adaptive_memory_engine import AdaptiveMemoryEngine
-from rag_engine import RAGEngine
-from telemetry import TelemetryLogger
+# Import our internal modules
+from src.context_engine.engine import AdaptiveMemoryEngine
+from src.rag_engine.engine import GroundedRAGEngine
+from src.telemetry.tracker import TelemetryTracker
 
-app = FastAPI(title="موجة البيان", description="نظام ذاكرة سياقية تكيفية ومحرك RAG محلي")
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("qreen")
 
-# تحميل الإعدادات
-TOP_K_MEMORIES = int(os.getenv("TOP_K_MEMORIES", "3"))
-SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.5"))
-CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "mowjn_knowledge")
-DOCS_DIR = os.getenv("MAWJAH_DOCS_DIR", "docs/")
-LLM_MODE = os.getenv("LLM_MODE", "none").lower()  # "none" = بدون نموذج
+# ============================================================
+# App Configuration
+# ============================================================
 
+app = FastAPI(
+    title="Qreen Contextual Engine",
+    description="نظام ذاكرة سياقية تكيفية ومحرك استرجاع محلي بالكامل",
+    version="0.1.0-alpha",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+# Initialize engines
+memory_engine = AdaptiveMemoryEngine(collection_name="qreen_memories")
+rag_engine = GroundedRAGEngine(auto_index=True)
+telemetry = TelemetryTracker()
+
+
+# ============================================================
+# Request/Response Models
+# ============================================================
 
 class QueryRequest(BaseModel):
-    message: str
+    """طلب استعلام من المستخدم"""
+    query: str
+    top_k: int = 3
+    include_context: bool = True
 
 
-class QueryResponse(BaseModel):
-    response: str
-    sources: list
-    memories_used: int
-    rag_results: int
+class MemoryResponse(BaseModel):
+    """استجابة محرك الذاكرة"""
+    memories: List[dict]
+    count: int
+    confidence_scores: List[float]
 
 
-# تهيئة المكونات عند بدء التشغيل
-memory_engine = AdaptiveMemoryEngine(collection_name=CHROMA_COLLECTION)
-rag_engine = RAGEngine(docs_dir=DOCS_DIR)
-telemetry = TelemetryLogger()
+class RAGResponse(BaseModel):
+    """استجابة محرك RAG"""
+    answer: str
+    sources: List[str]
+    confidence: float
+    context_used: List[str]
 
 
-@app.get("/")
-async def serve_index():
-    """تقديم الصفحة الرئيسية"""
-    return FileResponse("static/index.html")
+class HealthResponse(BaseModel):
+    """استجابة فحص الصحة"""
+    status: str
+    version: str
+    memory_size: int
+    vector_count: int
 
 
-@app.post("/api/chat", response_model=QueryResponse)
-async def chat(request: QueryRequest):
-    """معالجة سؤال المستخدم"""
-    if not request.message.strip():
-        raise HTTPException(status_code=400, detail="الرسالة فارغة")
+# ============================================================
+# Routes
+# ============================================================
 
-    try:
-        # 1. استرجاع الذكريات السابقة
-        memories = memory_engine.retrieve(
-            query=request.message,
-            top_k=TOP_K_MEMORIES,
-            threshold=SIMILARITY_THRESHOLD,
-        )
-
-        # 2. بحث في قاعدة المعرفة الثابتة (RAG)
-        rag_results = rag_engine.search(query=request.message)
-
-        # بناء الرد حسب الوضع
-        if LLM_MODE == "none":
-            # === وضع البحث المحلي فقط ===
-            response_text, sources = build_local_response(
-                request.message, memories, rag_results
-            )
-        else:
-            # === وضع النموذج اللغوي (يتطلب API Key) ===
-            from llm_client import get_llm_client
-            llm_client = get_llm_client()
-
-            parts = []
-            if memories:
-                mem_text = "\n".join([f"- {m['text']}" for m in memories])
-                parts.append(f"سياق سابق:\n{mem_text}")
-            if rag_results:
-                rag_text = "\n".join([f"- {r['text']}" for r in rag_results])
-                parts.append(f"\nمعلومات مرجعية:\n{rag_text}")
-
-            enriched_prompt = "\n\n".join(parts) + f"\n\nالسؤال: {request.message}"
-
-            system_msg = (
-                "أنت مساعد ذكي عربي يُعرف بموجة البيان. "
-                "استخدم السياق المقدم للإجابة بدقة ووضوح."
-            )
-            response_text = llm_client.generate(system_msg, enriched_prompt)
-            sources = [r.get('source', '') for r in rag_results]
-
-        # حفظ المحادثة
-        memory_engine.store(request.message, response_text)
-        telemetry.log_interaction(len(memories), len(rag_results), len(response_text))
-
-        return QueryResponse(
-            response=response_text,
-            sources=sources,
-            memories_used=len(memories),
-            rag_results=len(rag_results),
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-def build_local_response(query: str, memories: list, rag_results: list) -> tuple:
-    """بناء رد من نتائج البحث المحلي فقط — بدون نموذج لغوي"""
-    lines = []
-    sources = []
-
-    # عرض نتائج RAG
-    if rag_results:
-        lines.append("📚 نتائج البحث من قاعدة المعرفة:")
-        lines.append("")
-        for i, result in enumerate(rag_results, 1):
-            text = result.get('text', '')[:500]  # أول 500 حرف
-            source = result.get('source', 'غير معروف')
-            score = result.get('score', 0)
-            lines.append(f"**{i}. {source}** (التشابه: {score:.2%})")
-            lines.append(text)
-            lines.append("---")
-            sources.append(source)
-    else:
-        lines.append("⚠️ لم أجد نتائج مطابقة في قاعدة المعرفة.")
-        lines.append("")
-        lines.append("💡 نصيحة: أضف ملفات `.md` أو `.txt` في مجلد `docs/` لتوسيع قاعدة المعرفة.")
-
-    # عرض الذكريات السابقة
-    if memories:
-        lines.append("")
-        lines.append("🧠 سياق المحادثة السابق:")
-        for m in memories:
-            lines.append(f"• {m['text'][:300]}")
-
-    return "\n\n".join(lines), sources
-
-
-@app.get("/api/status")
-async def get_status():
-    """حالة النظام"""
+@app.get("/", tags=["General"])
+async def root():
+    """نقطة البداية — هوية Qreen"""
     return {
-        "status": "running",
-        "mode": LLM_MODE,
-        "memory_count": memory_engine.stats()["total"],
-        "docs_dir": DOCS_DIR,
+        "name": "Qreen Contextual Engine",
+        "version": "0.1.0-alpha",
+        "flag": "🇸🇦",
+        "philosophy": "السياق → النمط → التنبؤ",
+        "endpoints": ["/query", "/memory/search", "/health"]
     }
 
 
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+@app.get("/health", response_model=HealthResponse, tags=["Monitoring"])
+async def health_check():
+    """فحص صحة النظام"""
+    try:
+        mem_stats = memory_engine.get_stats()
+        return HealthResponse(
+            status="healthy",
+            version="0.1.0-alpha",
+            memory_size=mem_stats.get("total_memories", 0),
+            vector_count=mem_stats.get("total_memories", 0)
+        )
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        raise HTTPException(status_code=503, detail=f"Service degraded: {str(e)}")
+
+
+@app.post("/query", response_model=RAGResponse, tags=["Query"])
+async def query(request: QueryRequest):
+    """
+    نقطة الاستعلام الرئيسية
+    -------------------------
+    يستقبل سؤال بالعربية ويعيد إجابة مدعومة بالسياق
+    """
+    try:
+        # Step 1: Search in knowledge base via RAG
+        result = rag_engine.answer_query(query=request.query)
+
+        # Step 2: Enrich with adaptive memory context
+        context_used = []
+        if request.include_context:
+            context_memories = memory_engine.retrieve_by_text(
+                query=request.query,
+                top_k=request.top_k
+            )
+            context_used = [m["content"] for m in context_memories]
+
+        # Step 3: Track anonymously
+        telemetry.track_query(
+            query_length=len(request.query),
+            results_found=len(result.get("sources", []))
+        )
+
+        return RAGResponse(
+            answer=result.get("answer", ""),
+            sources=[s.get("title", "") for s in result.get("sources", [])],
+            confidence=1.0 if result.get("grounded") else 0.0,
+            context_used=context_used
+        )
+
+    except Exception as e:
+        logger.error(f"Query failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Query processing failed: {str(e)}")
+
+
+@app.post("/memory/search", response_model=MemoryResponse, tags=["Memory"])
+async def search_memory(request: QueryRequest):
+    """
+    البحث في الذاكرة التكيفية
+    --------------------------
+    يبحث عن ذكريات مشابهة مع تضاؤل زمني
+    """
+    try:
+        memories = memory_engine.retrieve_by_text(
+            query=request.query,
+            top_k=request.top_k
+        )
+
+        return MemoryResponse(
+            memories=memories,
+            count=len(memories),
+            confidence_scores=[m.get("final_score", 0) for m in memories]
+        )
+
+    except Exception as e:
+        logger.error(f"Memory search failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/memory/save", tags=["Memory"])
+async def save_memory(text: str, metadata: Optional[dict] = None):
+    """حفظ ذكرى جديدة في الذاكرة التكيفية"""
+    try:
+        import uuid
+        memory_id = str(uuid.uuid4())
+        success = memory_engine.add_memory(
+            memory_id=memory_id,
+            content=text
+        )
+        return {"status": "saved" if success else "duplicate", "memory_id": memory_id}
+    except Exception as e:
+        logger.error(f"Save memory failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/memory/cleanup", tags=["Memory"])
+async def cleanup_memory(threshold: float = 0.1):
+    """تنظيف الذكريات منخفضة الدرجة"""
+    try:
+        removed_ids = memory_engine.cleanup_low_score(min_final_score=threshold)
+        return {"status": "cleaned", "removed": len(removed_ids)}
+    except Exception as e:
+        logger.error(f"Cleanup failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/telemetry/stats", tags=["Telemetry"])
+async def get_telemetry_stats():
+    """إحصائيات التتبع المجهول"""
+    try:
+        stats = telemetry.get_stats()
+        return stats
+    except Exception as e:
+        logger.error(f"Telemetry stats failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================
+# Startup & Shutdown Events
+# ============================================================
+
+@app.on_event("startup")
+async def startup_event():
+    """أحداث بدء التشغيل"""
+    logger.info("🏜️ Qreen Contextual Engine starting...")
+    logger.info("Loading embedding model...")
+    logger.info("Initializing ChromaDB...")
+    logger.info("✅ Qreen is ready!")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """أحداث إيقاف التشغيل"""
+    logger.info("🏜️ Qreen shutting down gracefully...")
+    memory_engine.close()
+
+
+# ============================================================
+# Run with: uvicorn api.server:app --reload --host 0.0.0.0 --port 8000
+# ============================================================
