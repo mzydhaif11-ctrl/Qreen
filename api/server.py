@@ -4,13 +4,16 @@ Qreen Contextual Engine | FastAPI Server
 محرك استرجاع معلومات محلي بالكامل — يدعم العربية بدون أي API خارجي 🔒🇸🇦
 
 Author: Qreen Team
+License: MIT
 """
+
+from __future__ import annotations
+
+import logging
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
-import os
-import logging
 
 # Import our internal modules
 from src.context_engine.engine import AdaptiveMemoryEngine
@@ -52,17 +55,17 @@ class QueryRequest(BaseModel):
 
 class MemoryResponse(BaseModel):
     """استجابة محرك الذاكرة"""
-    memories: List[dict]
+    memories: list[dict]
     count: int
-    confidence_scores: List[float]
+    confidence_scores: list[float]
 
 
 class RAGResponse(BaseModel):
     """استجابة محرك RAG"""
     answer: str
-    sources: List[str]
+    sources: list[str]
     confidence: float
-    context_used: List[str]
+    context_used: list[str]
 
 
 class HealthResponse(BaseModel):
@@ -117,7 +120,7 @@ async def query(request: QueryRequest):
         result = rag_engine.answer_query(query=request.query)
 
         # Step 2: Enrich with adaptive memory context
-        context_used = []
+        context_used: list[str] = []
         if request.include_context:
             context_memories = memory_engine.retrieve_by_text(
                 query=request.query,
