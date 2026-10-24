@@ -1,6 +1,5 @@
-
 """
-# Ingest Module for Qreen Contextual Engine
+Ingest Module for Qreen Contextual Engine
 =================================
 
 تغذية البيانات الأولية للنظام — فهرسة الوثائق محلياً.
@@ -9,13 +8,16 @@
 يستخدم:
   - sentence-transformers للتضمين الدلالي المحلي
   - ChromaDB للتخزين والفهرسة
+
+Author: Qreen Team
+License: MIT
 """
 
 import logging
 from pathlib import Path
 from typing import Any, Dict
 
-from src.context_engine.store import DOCS_DIR, ensure_index
+from src.context_engine.store import DOCS_DIR, ensure_index, rebuild_index
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,7 +52,7 @@ if __name__ == "__main__":
     # دعم خيار --rebuild من سطر الأوامر
     force = "--rebuild" in sys.argv or "-r" in sys.argv
 
-    print("🔧 Ingest Module — موجة البيان")
+    print("🔧 Ingest Module — Qreen Contextual Engine")
     print("=" * 40)
     print(f"مجلد الوثائق: {DOCS_DIR}")
     print(f"إعادة البناء: {'نعم' if force else 'لا'}")
