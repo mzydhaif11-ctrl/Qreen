@@ -1,5 +1,5 @@
 """
-Mowjn AI-Bayan | Adaptive Memory Engine
+Qreen Contextual Engine | Adaptive Memory Engine
 ========================================
 محرك ذاكرة سياقية تكيفية مع تضاؤل زمني وتخزين دائم على ChromaDB.
 
