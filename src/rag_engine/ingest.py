@@ -15,7 +15,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict
 
-from vector_store import DOCS_DIR, ensure_index, rebuild_index
+from src.context_engine.store import DOCS_DIR, ensure_index
 
 logging.basicConfig(
     level=logging.INFO,
