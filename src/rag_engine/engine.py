@@ -1,3 +1,4 @@
+"""
 Grounded RAG Engine for Qreen Contextual Engine
 =======================================
 
@@ -20,7 +21,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from vector_store import (
+from src.context_engine.store import (
     DOCS_DIR,
     ensure_index,
     vector_search,
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
 WORKSPACE_PAGES_DIR = Path(
-    os.getenv("MAWJAH_DOCS_DIR", str(DOCS_DIR))
+    os.getenv("QREEN_DOCS_DIR", str(DOCS_DIR))
 )
 
 
@@ -112,7 +113,7 @@ class GroundedRAGEngine:
                     else (
                         "https://github.com/"
                         "mzydhaif11-ctrl/"
-                        "Suggested-Workflows/blob/main/docs/"
+                        "Qreen/blob/main/docs/"
                         + path.name
                     )
                 )
@@ -154,7 +155,7 @@ class GroundedRAGEngine:
     # ─── Indexing ──────────────────────────────────────────
 
     def index_documents(self, force_rebuild: bool = False) -> Dict[str, Any]:
-        from ingest import index_documents as ingest_index
+        from src.rag_engine.ingest import index_documents as ingest_index
 
         result = ingest_index(force_rebuild=force_rebuild)
         self._load_lexical_documents()
@@ -357,7 +358,7 @@ if __name__ == "__main__":
 
     engine = GroundedRAGEngine(auto_index=True)
 
-    print("\n🔍 محرك RAG المحلي — موجة البيان")
+    print("\n🔍 محرك RAG المحلي — Qreen")
     print("=" * 50)
     print("اكتب سؤالك (أو 'exit' للخروج)\n")
 
@@ -382,4 +383,5 @@ if __name__ == "__main__":
             print("المصادر:")
             for s in result["sources"]:
                 print(f"  • {s['title']} (درجة: {s['score']})")
-            print() 
+            print()
+          
