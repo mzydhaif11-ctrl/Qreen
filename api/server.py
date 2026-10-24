@@ -4,7 +4,6 @@ Qreen Contextual Engine | FastAPI Server
 محرك استرجاع معلومات محلي بالكامل — يدعم العربية بدون أي API خارجي 🔒🇸🇦
 
 Author: Qreen Team
-License: MIT
 """
 
 from fastapi import FastAPI, HTTPException
