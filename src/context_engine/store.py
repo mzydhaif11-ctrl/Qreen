@@ -1,10 +1,9 @@
-
 """
 Vector Store Module for Qreen Contextual Engine
 =======================================
 
 مخزن متجهات دلالية لقاعدة المعرفة الثابتة (ملفات docs/).
-يستخدم sentence-transformers محلياً + ChromaDB للبحث الدلالي السريع.
+يستخدم sentence-transformers محلياُ + ChromaDB للبحث الدلالي السريع.
 
 لا يحتاج أي مفتاح API — يشتغل بالكامل على الجهاز المحلي.
 
@@ -29,14 +28,15 @@ logger = logging.getLogger(__name__)
 # ─── Configuration ──────────────────────────────────────────────
 
 BASE_DIR = Path(__file__).resolve().parent
-DOCS_DIR = BASE_DIR / "docs"
+DOCS_DIR = BASE_DIR / ".." / ".." / "docs"
+DOCS_DIR = DOCS_DIR.resolve()
 
 # ✅ نموذج محلي يدعم العربي ضمن 100+ لغة
 EMBEDDING_MODEL = os.getenv(
     "EMBEDDING_MODEL",
     "sentence-transformers/paraphrase-xlm-r-multilingual-v1",
 )
-CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "mowjn_knowledge")
+CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "qreen_knowledge")
 PERSIST_DIR = str(BASE_DIR / ".chroma_knowledge")
 
 # كاش للنموذج — يُحمَّل مرة وحدة فقط
@@ -227,7 +227,7 @@ def vector_search(
 
     :param query: نص الاستعلام
     :param top_k: عدد النتائج المطلوبة
-    :param api_key: (غير مستخدم — موجود للتوافق مع engine.py)
+    :param api_key: (غير مستخدم — موجود للتوافق مع rag_engine.py)
     :returns: قائمة نتائج البحث مرتبة بالأولوية
     """
     client = _get_client()
@@ -257,7 +257,7 @@ def vector_search(
 
         output.append({
             "title": meta.get("filename", "غير معروف"),
-            "url": f"https://github.com/mzydhaif11-ctrl/Suggested-Workflows/blob/main/docs/{meta.get('filename', '')}",
+            "url": f"https://github.com/mzydhaif11-ctrl/Qreen/blob/main/docs/{meta.get('filename', '')}",
             "filename": meta.get("filename", ""),
             "score": score,
             "excerpt": results["documents"][0][i][:450] + "...",
@@ -271,7 +271,7 @@ def vector_search(
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    print("🔧 Vector Store Management")
+    print("🔧 Vector Store Management — Qreen")
     print("=" * 40)
     print("1. ensure_index  - بناء الفهرس إذا لم يكن موجوداُ")
     print("2. rebuild_index - إعادة البناء من الصفر")
