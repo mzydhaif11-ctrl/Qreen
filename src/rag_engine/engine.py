@@ -9,6 +9,9 @@ Grounded RAG Engine for Qreen Contextual Engine
   - Vector Search (sentence-transformers + ChromaDB) للبحث الدلالي
   - Keyword Search (BM25-like) كخيار احتياطي
   - توليد إجابات محلية من المقاطع المسترجعة
+
+Author: Qreen Team
+License: MIT
 """
 
 from __future__ import annotations
@@ -230,7 +233,7 @@ class GroundedRAGEngine:
         self, query: str, top_k: int = 3
     ) -> List[Dict[str, Any]]:
         """
-        بحث موحّد: يحاول البحث الدلالي أولاً، ثم يعود للكلمات المفتاحية.
+        بحث موحّد: يحاول البحث الدلالي أولاُ، ثم يعود للكلمات المفتاحية.
         لا يحتاج مفتاح API — كل شيء محلي.
         """
         query = str(query or "").strip()
@@ -358,7 +361,7 @@ if __name__ == "__main__":
 
     engine = GroundedRAGEngine(auto_index=True)
 
-    print("\n🔍 محرك RAG المحلي — Qreen")
+    print("\n🔍 محرك RAG المحلي — Qreen Contextual Engine")
     print("=" * 50)
     print("اكتب سؤالك (أو 'exit' للخروج)\n")
 
@@ -384,4 +387,3 @@ if __name__ == "__main__":
             for s in result["sources"]:
                 print(f"  • {s['title']} (درجة: {s['score']})")
             print()
-          
