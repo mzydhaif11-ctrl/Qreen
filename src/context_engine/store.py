@@ -1,6 +1,6 @@
 
 """
-Vector Store Module for Mowjn AI-Bayan
+Vector Store Module for Qreen Contextual Engine
 =======================================
 
 مخزن متجهات دلالية لقاعدة المعرفة الثابتة (ملفات docs/).
@@ -227,7 +227,7 @@ def vector_search(
 
     :param query: نص الاستعلام
     :param top_k: عدد النتائج المطلوبة
-    :param api_key: (غير مستخدم — موجود للتوافق مع rag_engine.py)
+    :param api_key: (غير مستخدم — موجود للتوافق مع engine.py)
     :returns: قائمة نتائج البحث مرتبة بالأولوية
     """
     client = _get_client()
